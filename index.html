@@ -416,6 +416,7 @@ var hs=[];if(s.hist.length)hs.push('Test: '+s.hist.slice(-5).join(', ')+' /20');
 if(s.hq&&s.hq.length)hs.push('Preguntas: '+s.hq.slice(-5).join(', ')+' /15');
 if(s.hx&&s.hx.length)hs.push('Registros: '+s.hx.slice(-5).join(', ')+' /7');
 if(hs.length)box.appendChild(el('div','hist','Últimas notas · '+hs.join(' · ')));
+var hb_=el('button','btn alt','📋 Ver historial');hb_.style.marginTop='14px';hb_.onclick=function(){hScope='dns';hFrom=['← DNS',function(){home()}];historial()};box.appendChild(hb_);
 var tp=s.tp||{};
 if(Object.keys(tp).length){var st_=el('div','stats');st_.appendChild(el('div','meta','Tu dominio por tema (aciertos a la primera)'));
 Object.keys(T).forEach(function(t){var o=tp[t];if(!o)return;var pp=Math.round(o[0]/o[1]*100),r=el('div','srow');r.appendChild(el('span','sl',T[t][0]));var b=el('div','sbar'),f=el('div');f.style.width='0';f.style.background=T[t][1];b.appendChild(f);r.appendChild(b);r.appendChild(el('span','sp',pp+'%'));st_.appendChild(r);setTimeout(function(){f.style.width=pp+'%'},40)});
@@ -586,7 +587,7 @@ else box.appendChild(el('p','c','¡Sin fallos! Perfecto.'));
 var n=el('div','nav'),b2=el('button','btn alt','Menú');b2.onclick=home;
 var b1=el('button','btn','Otra ronda');b1.onclick=beginQ;n.appendChild(b2);n.appendChild(b1);box.appendChild(n);window.scrollTo(0,0)}
 // ===== Menú principal: Serveis =====
-function hdr(p){var wp=document.querySelector('.wrap');if(wp)wp.classList.remove('wide');var T_=p==='smx'?['SMX 2','CFGM · Sistemas Microinformáticos y Redes']:p==='sox'?['SOX','Sección en construcción']:p==='seg'?['Seguretat','Test T2 RAID · Copias de seguridad y RAID']:p?['Servicios en red','MP07 · Práctica para el examen']:['Practica DNS','Test, preguntas escritas y ayuda cuando fallas'];
+function hdr(p){var wp=document.querySelector('.wrap');if(wp)wp.classList.remove('wide');var T_=p==='smx'?['SMX 2','CFGM · Sistemas Microinformáticos y Redes']:p==='sox'?['SOX','Sección en construcción']:p==='his'?['Historial','Tests anteriores y tus respuestas']:p==='seg'?['Seguretat','Test T2 RAID · Copias de seguridad y RAID']:p?['Servicios en red','MP07 · Práctica para el examen']:['Practica DNS','Test, preguntas escritas y ayuda cuando fallas'];
 document.getElementById('hT').textContent=TR(T_[0]);document.getElementById('hP').textContent=TR(T_[1]);
 document.getElementById('hm').style.display=p?'none':'';box.classList.toggle('clear',!!p)}
 function cover(o){
@@ -872,6 +873,7 @@ box.appendChild(mk('Empezar en el orden del documento','Preguntas 1 a '+SQ.lengt
 box.appendChild(mk('Orden aleatorio','Las mismas preguntas mezcladas.','',function(){raidBegin(true)}));
 box.appendChild(mk('Ver preguntas y respuestas','Todas las preguntas con su respuesta correcta.','',raidAnswers));
 if(s.hist.length)box.appendChild(el('div','hist','Últimas notas · '+s.hist.slice(-5).join(', ')+' /'+SQ.length));
+var hb_=el('button','btn alt','📋 Ver historial');hb_.style.marginTop='14px';hb_.onclick=function(){hScope='seg';hFrom=['← Test T2 RAID',raidHome];historial()};box.appendChild(hb_);
 LK=''}
 function raidAnswers(){
 sgShell();enter('ra');
@@ -926,6 +928,68 @@ var n=el('div','nav'),b1=el('button','btn','Repetir test'),b2=el('button','btn a
 b1.onclick=raidHome;b2.onclick=seguretat;b3.onclick=raidAnswers;n.appendChild(b2);n.appendChild(b3);n.appendChild(b1);
 if(wrong.length){var b4=el('button','btn fin','Repasar solo las falladas');b4.onclick=function(){sT=wrong.map(function(z){return {id:z.id,q:z.q,sel:null}});sI=0;raidDraw()};n.appendChild(b4)}
 box.appendChild(n);window.scrollTo(0,0)}
+// ===== Historial de tests =====
+var HK='dnsHistV1',hSel=0,hScope='dns',hOnly=false,hFrom=null;
+function hLoad(){try{var a=JSON.parse(localStorage.getItem(HK));if(Array.isArray(a))return a}catch(e){}return window._hh||[]}
+function hSave(a){window._hh=a;try{localStorage.setItem(HK,JSON.stringify(a))}catch(e){}}
+function hAdd(kind,label,items){
+if(!items||!items.length)return;
+var sc=items.filter(function(x){return x.ok}).length,a=hLoad();
+a.push({t:Date.now(),k:kind,l:label,s:sc,n:items.length,i:items});
+if(a.length>40)a=a.slice(-40);
+hSave(a)}
+function hWrap(name,fn){var f=window[name];window[name]=function(){try{fn()}catch(e){}return f.apply(this,arguments)}}
+hWrap('finish',function(){hAdd('dns','DNS · Tipo Test',test.map(function(z){var r=z.q[2][0];
+return {q:z.q[1],m:z.fails===0?r:z.o[z.first].x,r:r,ok:z.fails===0,f:1}}))});
+hWrap('finishW',function(){hAdd('dns','DNS · Tipo Preguntas',WQ.map(function(z){
+return {q:z.q[1],m:z.fails?z.first:(z.shown||''),r:z.q[2][0],ok:z.fails===0,f:1}}))});
+hWrap('finishX',function(){hAdd('dns','DNS · Explicar registros',XQ.map(function(z){
+return {q:'Explica qué hace el registro '+z.q[0]+' ('+z.q[1]+')',m:z.fails?z.first:z.last,r:z.q[3],ok:z.fails===0,f:1}}))});
+hWrap('endR',function(){hAdd('dns','DNS · Modo repaso',RQ.filter(function(z){return z.o}).map(function(z){
+var r=B[z.k][2][0],ok=z.first===true;
+return {q:B[z.k][1],m:ok?r:(z.dead&&z.dead.length?z.o[z.dead[0]].x:''),r:r,ok:ok,f:1}}))});
+hWrap('raidFinish',function(){hAdd('raid',sT.length<SQ.length?'Seguretat · Test T2 RAID · Repaso de falladas':'Seguretat · Test T2 RAID',sT.map(function(z){
+return {q:z.q[0],m:z.sel===null?'':z.q[1][z.sel],r:z.q[1][z.q[2]],ok:z.sel===z.q[2],n:z.id+1}}))});
+function hShell(){active=false;hdr('his');document.getElementById('hT').textContent=TR(hScope==='dns'?'Historial DNS':'Historial Seguretat');document.getElementById('hP').textContent=TR(hScope==='dns'?'Tus tests de DNS y tus respuestas':'Tus tests de Test T2 RAID y tus respuestas');box.classList.remove('clear');box.innerHTML=''}
+function hMine(e){return (e.k.indexOf('dns')===0?'dns':'seg')===hScope}
+function hCol(p){return p>=.7?'var(--green)':p>=.5?'var(--orange)':'var(--red)'}
+function hDate(t){try{return new Date(t).toLocaleString(LANG==='ca'?'ca-ES':'es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
+function historial(){
+hShell();enter('hs'+hScope);var all=hLoad(),fr=hFrom||['← DNS',function(){home()}];
+var back=el('button','btn alt',fr[0]);back.onclick=fr[1];box.appendChild(back);
+var h=el('h2','c','Historial');h.style.fontSize='2rem';h.style.margin='14px 0 2px';box.appendChild(h);
+var mine=all.filter(hMine);
+if(!mine.length){box.appendChild(el('p','c meta','Aún no hay tests guardados. Termina un test y aparecerá aquí.'));LK='';return}
+box.appendChild(el('p','c meta','Tus últimos tests y lo que respondiste en cada pregunta'));
+for(var k=all.length-1;k>=0;k--){(function(k){var e=all[k];
+if(!hMine(e))return;
+var b=el('button','mb');b.appendChild(el('b','',e.l));b.appendChild(el('span','',hDate(e.t)+' · '+e.s+' / '+e.n));
+var p=e.s/e.n,r=el('div','srow'),bar=el('div','sbar'),f=el('div');f.style.width='0';f.style.background=hCol(p);bar.appendChild(f);r.appendChild(bar);
+var sp=el('span','sp',Math.round(p*100)+'%');sp.style.color=hCol(p);sp.style.fontSize='.88rem';r.appendChild(sp);b.appendChild(r);
+setTimeout(function(){f.style.width=Math.round(p*100)+'%'},40);
+b.onclick=function(){hSel=k;hOnly=false;sfx('ok');historialDetail()};box.appendChild(b)})(k)}
+var rs=el('button','btn alt','Borrar historial');rs.style.marginTop='16px';
+rs.onclick=function(){if(confirm('¿Borrar todo el historial de tests?')){hSave(hLoad().filter(function(e){return !hMine(e)}));historial()}};
+box.appendChild(rs);LK=''}
+function historialDetail(){
+var all=hLoad(),e=all[hSel];if(!e){historial();return}
+hShell();enter('hd'+hSel+(hOnly?'o':''));
+var back=el('button','btn alt','← Historial');back.onclick=historial;box.appendChild(back);
+var p=e.s/e.n,big=el('div','big',e.s+' / '+e.n);big.style.color=hCol(p);box.appendChild(big);
+box.appendChild(el('h2','c',e.l));
+box.appendChild(el('p','c meta',hDate(e.t)+' · ✅ '+e.s+'  ·  ❌ '+(e.n-e.s)));
+if(e.i[0]&&e.i[0].f)box.appendChild(el('p','c meta','Cuenta la primera respuesta de cada pregunta'));
+if(e.n>e.s){var tg=el('button','btn alt',hOnly?'Ver todas':'Solo falladas');tg.style.display='block';tg.style.margin='12px auto';
+tg.onclick=function(){hOnly=!hOnly;historialDetail()};box.appendChild(tg)}
+e.i.forEach(function(x,j){if(hOnly&&x.ok)return;
+var r=el('div','rev');
+if(x.ok){r.style.borderLeftColor='var(--green)';r.style.background='rgba(22,163,106,.14)'}
+r.appendChild(el('p','',(x.n?('#'+x.n+' · '):((j+1)+'. '))+x.q)).style.fontWeight='700';
+var y=el('p');y.appendChild(el('span',x.ok?'yes':'no',(x.ok?'✅ ':'❌ ')+(x.f?'Tu primera respuesta: ':'Tu respuesta: ')));y.appendChild(document.createTextNode(x.m||'—'));r.appendChild(y);
+if(!x.ok){var g=el('p');g.appendChild(el('span','yes','Correcta: '));g.appendChild(document.createTextNode(x.r));r.appendChild(g)}
+box.appendChild(r)});
+var n=el('div','nav'),bb=el('button','btn alt','← Historial');bb.onclick=historial;n.appendChild(bb);box.appendChild(n);
+LK='';window.scrollTo(0,0)}
 // ===== Idioma (CA/ES) y modo oscuro =====
 var LANG='es',DK=false,RR=null;
 try{LANG=localStorage.getItem('dnsLang')==='ca'?'ca':'es';DK=localStorage.getItem('dnsDark')==='1'}catch(e){}
@@ -973,10 +1037,19 @@ var PAIRS=[
 ['Resueltas','Resoltes'],['Resueltos','Resolts'],['Racha','Ratxa'],['Registros','Registres'],
 ['¡Excelente!','Excel·lent!'],['Muy bien','Molt bé'],['Aprobado justo','Aprovat just'],
 ['Hay que estudiar más','Cal estudiar més'],['Hay que repasar','Cal repassar'],['a repasar','a repassar'],
-['Sin fallos! Perfecto.','Sense errors! Perfecte.'],['¡Correcto!','Correcte!'],['¡Conseguido!','Aconseguit!']
+['Sin fallos! Perfecto.','Sense errors! Perfecte.'],['¡Correcto!','Correcte!'],['¡Conseguido!','Aconseguit!'],
+['Tests anteriores y tus respuestas','Tests anteriors i les teves respostes'],
+['Tus últimos tests y lo que respondiste en cada pregunta','Els teus últims tests i el que vas respondre a cada pregunta'],
+['Aún no hay tests guardados. Termina un test y aparecerá aquí.','Encara no hi ha tests desats. Acaba un test i apareixerà aquí.'],
+['No hay tests de este tipo todavía.',"Encara no hi ha tests d'aquest tipus."],
+['Historial DNS','Historial DNS'],['Historial Seguretat','Historial Seguretat'],['Tus tests de DNS y tus respuestas','Els teus tests de DNS i les teves respostes'],['Tus tests de Test T2 RAID y tus respuestas','Els teus tests de Test T2 RAID i les teves respostes'],['Borrar historial','Esborrar historial'],
+['¿Borrar todo el historial de tests?',"Vols esborrar tot l'historial de tests?"],
+['📋 Ver historial','📋 Veure historial'],['Solo falladas','Només fallades'],['Ver todas','Veure totes'],
+['Cuenta la primera respuesta de cada pregunta','Compta la primera resposta de cada pregunta'],
+['Repaso de falladas','Repàs de fallades'],['Tipo Test','Tipus Test']
 ];
 function TR(x){var s=String(x);if(LANG!=='ca')return s;for(var i=0;i<PAIRS.length;i++)s=s.split(PAIRS[i][0]).join(PAIRS[i][1]);return s}
-['home','portal','smx','seguretat','raidHome','raidAnswers','draw','drawW','drawX','showR','raidDraw','sox'].forEach(function(n){var f=window[n];window[n]=function(){RR=f;return f.apply(this,arguments)}});
+['home','portal','smx','seguretat','raidHome','raidAnswers','draw','drawW','drawX','showR','raidDraw','sox','historial','historialDetail'].forEach(function(n){var f=window[n];window[n]=function(){RR=f;return f.apply(this,arguments)}});
 ['finish','finishW','finishX','endR','raidFinish','repasar'].forEach(function(n){var f=window[n];window[n]=function(){RR=null;return f.apply(this,arguments)}});
 var lb=document.getElementById('lb'),dk=document.getElementById('dk');
 function uiBtn(){lb.textContent=LANG==='ca'?'ES':'CA';lb.title=LANG==='ca'?'Cambiar a castellano':'Canviar a català';dk.textContent=DK?'☀️':'🌙';dk.title=DK?'Modo claro':'Modo oscuro';document.documentElement.lang=LANG;document.querySelectorAll('[data-es]').forEach(function(e){e.textContent=TR(e.getAttribute('data-es'))})}
