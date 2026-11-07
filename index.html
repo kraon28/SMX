@@ -869,8 +869,10 @@ sgShell();enter('rh');var s=sgLoad();
 var back=el('button','btn alt','← Seguretat');back.onclick=seguretat;box.appendChild(back);
 var h=el('h2','c','Test T2 RAID');h.style.fontSize='2rem';h.style.margin='14px 0 2px';box.appendChild(h);
 box.appendChild(el('p','c meta',SQ.length+' preguntas · Contesta todas y descubre tu nota al final'));
+var rr_=rRunGet();if(rr_){var dn_=rr_.t.filter(function(z){return z.sel!==null}).length;box.appendChild(mk('Continuar el test que dejaste a medias',dn_+' de '+rr_.t.length+' contestadas.','rec',function(){sT=rr_.t;sI=Math.min(rr_.i||0,sT.length-1);raidDraw()}))}
 box.appendChild(mk('Empezar en el orden del documento','Preguntas 1 a '+SQ.length+' tal como aparecen.','rec',function(){raidBegin(false)}));
-box.appendChild(mk('Orden aleatorio','Las mismas preguntas mezcladas.','',function(){raidBegin(true)}));
+box.appendChild(mk('Orden aleatorio','Las mismas preguntas y sus respuestas mezcladas.','',function(){raidBegin(true)}));
+var wk_=rWeak();if(wk_.length)box.appendChild(mk('Repasar mis falladas',wk_.length+(wk_.length===1?' pregunta fallada':' preguntas falladas')+' la última vez que las contestaste, con las respuestas mezcladas.','',function(){raidBegin(true,wk_)}));
 box.appendChild(mk('Ver preguntas y respuestas','Todas las preguntas con su respuesta correcta.','',raidAnswers));
 if(s.hist.length)box.appendChild(el('div','hist','Últimas notas · '+s.hist.slice(-5).join(', ')+' /'+SQ.length));
 var hb_=el('button','btn alt','📋 Ver historial');hb_.style.marginTop='14px';hb_.onclick=function(){hScope='seg';hFrom=['← Test T2 RAID',raidHome];historial()};box.appendChild(hb_);
@@ -887,13 +889,14 @@ var k=q[2],o=el('div','','✅ '+String.fromCharCode(65+k)+'. '+q[1][k]);
 o.style.cssText='padding:9px 12px;margin:8px 0 0;border-radius:12px;border:2px solid var(--green);background:rgba(22,163,106,.22);font-weight:700';
 c.appendChild(o);box.appendChild(c)});
 var b=el('button','btn alt','↑ Arriba');b.onclick=function(){window.scrollTo(0,0)};box.appendChild(b);window.scrollTo(0,0)}
-function raidBegin(rnd){
-var ids=SQ.map(function(q,k){return k});if(rnd)ids=shuf(ids);
-sT=ids.map(function(k){return {id:k,q:SQ[k],sel:null}});sI=0;raidDraw()}
+function rShufOpts(q){var p=shuf(q[1].map(function(_,i){return i}));return [q[0],p.map(function(i){return q[1][i]}),p.indexOf(q[2])]}
+function raidBegin(rnd,only){
+var ids=only||SQ.map(function(q,k){return k});if(rnd)ids=shuf(ids);
+sT=ids.map(function(k){return {id:k,q:rnd?rShufOpts(SQ[k]):SQ[k],sel:null}});sI=0;raidDraw()}
 function raidDraw(){
 var t=sT[sI],N=sT.length,done=sT.filter(function(z){return z.sel!==null}).length;
 sgShell();enter('r'+sI);
-var top=el('button','btn alt','← Salir');top.onclick=function(){if(confirm('¿Salir del test? Se perderá el progreso.'))raidHome()};
+var top=el('button','btn alt','← Salir');top.onclick=function(){if(confirm('¿Salir del test? Se perderá el progreso.')){rRunSet(null);raidHome()}};
 box.appendChild(top);
 var m=el('div','meta','Pregunta '+(sI+1)+' de '+N+' · Contestadas: '+done);m.style.marginTop='12px';box.appendChild(m);
 var bar=el('div','bar'),in_=el('div');in_.style.width=(done/N*100)+'%';bar.appendChild(in_);box.appendChild(bar);
@@ -928,6 +931,15 @@ var n=el('div','nav'),b1=el('button','btn','Repetir test'),b2=el('button','btn a
 b1.onclick=raidHome;b2.onclick=seguretat;b3.onclick=raidAnswers;n.appendChild(b2);n.appendChild(b3);n.appendChild(b1);
 if(wrong.length){var b4=el('button','btn fin','Repasar solo las falladas');b4.onclick=function(){sT=wrong.map(function(z){return {id:z.id,q:z.q,sel:null}});sI=0;raidDraw()};n.appendChild(b4)}
 box.appendChild(n);window.scrollTo(0,0)}
+// ===== Continuar test y repaso de falladas =====
+var RUNK='segRaidT2Run';
+function rRunGet(){try{var r=JSON.parse(localStorage.getItem(RUNK));if(r&&Array.isArray(r.t)&&r.t.length)return r}catch(e){}return window._rr||null}
+function rRunSet(r){window._rr=r;try{if(r)localStorage.setItem(RUNK,JSON.stringify(r));else localStorage.removeItem(RUNK)}catch(e){}}
+function rWeak(){var last={};hLoad().forEach(function(e){if(e.k==='raid')e.i.forEach(function(x){if(x.n)last[x.n-1]=x.ok})});
+return Object.keys(last).filter(function(k){return last[k]===false}).map(Number)}
+(function(){var d=window.raidDraw,f=window.raidFinish;
+window.raidDraw=function(){try{rRunSet({t:sT,i:sI})}catch(e){}return d.apply(this,arguments)};
+window.raidFinish=function(){try{rRunSet(null)}catch(e){}return f.apply(this,arguments)}})();
 // ===== Historial de tests =====
 var HK='dnsHistV1',hSel=0,hScope='dns',hOnly=false,hFrom=null;
 function hLoad(){try{var a=JSON.parse(localStorage.getItem(HK));if(Array.isArray(a))return a}catch(e){}return window._hh||[]}
@@ -1019,7 +1031,7 @@ var PAIRS=[
 ['Preguntas 1 a ','Preguntes 1 a '],[' tal como aparecen.',' tal com apareixen.'],
 [' preguntas · Contesta todas y descubre tu nota al final',' preguntes · Contesta-les totes i descobreix la teva nota al final'],
 ['Empezar en el orden del documento',"Començar en l'ordre del document"],['Orden aleatorio','Ordre aleatori'],
-['Las mismas preguntas mezcladas.','Les mateixes preguntes barrejades.'],
+['Las mismas preguntas y sus respuestas mezcladas.','Les mateixes preguntes i les seves respostes barrejades.'],
 ['Te faltan ','Et falten '],[' por contestar.',' per contestar.'],['Contestadas','Contestades'],
 ['Tu primera respuesta: ','La teva primera resposta: '],['Tu respuesta: ','La teva resposta: '],
 ['Preguntas acertadas a la primera','Preguntes encertades a la primera'],['Preguntas acertadas.','Preguntes encertades.'],
@@ -1046,7 +1058,7 @@ var PAIRS=[
 ['¿Borrar todo el historial de tests?',"Vols esborrar tot l'historial de tests?"],
 ['📋 Ver historial','📋 Veure historial'],['Solo falladas','Només fallades'],['Ver todas','Veure totes'],
 ['Cuenta la primera respuesta de cada pregunta','Compta la primera resposta de cada pregunta'],
-['Repaso de falladas','Repàs de fallades'],['Tipo Test','Tipus Test']
+['Repaso de falladas','Repàs de fallades'],['Continuar el test que dejaste a medias','Continua el test que vas deixar a mitges'],[' contestadas.',' contestades.'],['Repasar mis falladas','Repassar les meves fallades'],[' preguntas falladas',' preguntes fallades'],[' pregunta fallada',' pregunta fallada'],[' la última vez que las contestaste, con las respuestas mezcladas.'," l'última vegada que les vas contestar, amb les respostes barrejades."],['Tipo Test','Tipus Test']
 ];
 function TR(x){var s=String(x);if(LANG!=='ca')return s;for(var i=0;i<PAIRS.length;i++)s=s.split(PAIRS[i][0]).join(PAIRS[i][1]);return s}
 ['home','portal','smx','seguretat','raidHome','raidAnswers','draw','drawW','drawX','showR','raidDraw','sox','historial','historialDetail'].forEach(function(n){var f=window[n];window[n]=function(){RR=f;return f.apply(this,arguments)}});
