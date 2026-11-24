@@ -1111,7 +1111,11 @@ if(Array.isArray(count)){
 }else if(count>=ADB.length){
   pick=shuf(ADB.map(function(_,k){return k}));
 }else{
-  pick=shuf(ADB.map(function(_,k){return k})).slice(0,count);
+  /* Rotación: primero las menos vistas (empates al azar) para recorrer las 69 antes de repetir */
+  var seen_=s.seen||{};
+  pick=shuf(ADB.map(function(_,k){return k}));
+  pick.sort(function(x,y){return (seen_[x]||0)-(seen_[y]||0)});
+  pick=shuf(pick.slice(0,count));
 }
 adTest=pick.map(function(k){var q=ADB[k];return {id:k,q:q,o:shuf(q[2].map(function(x,j){return {x:x,ok:j===q[4]}})),sel:null,dead:[],fails:0,solved:false,first:null}});
 adCur=0;adDraw()}
