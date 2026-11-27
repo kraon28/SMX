@@ -1426,11 +1426,12 @@ var bar=el('div','bar'),in_=el('div');in_.style.width=(done/N*100)+'%';bar.appen
 var tag=el('span','tag',info[0]);tag.style.background=info[1];box.appendChild(tag);
 box.appendChild(el('h2','',t.q[1]));
 t.o.forEach(function(op,k){var d=t.dead.indexOf(k)>=0;
-var b=el('button','opt'+(d?' dead':'')+(t.solved&&op.ok?' good':'')+(t.solved&&k===t.first?' mine':''));
+var chosen=adExam&&t.solved&&k===t.sel;
+var b=el('button','opt'+(d?' dead':'')+(!adExam&&t.solved&&op.ok?' good':'')+(chosen?' sel':'')+(!adExam&&t.solved&&k===t.first?' mine':''));
 b.appendChild(el('span','adL',String.fromCharCode(65+k)));
 b.appendChild(el('span','adX',op.x));
-if(t.solved)b.appendChild(el('span','adTag'+(op.ok?' ok':(k===t.first?' no':'')),op.ok?'✓ Correcta':(k===t.first?'✗ La teva':'Descartada')));
-b.disabled=d||t.solved;b.onclick=function(){adExam?adExamPick(t,k):adPick(t,k)};box.appendChild(b)});
+if(!adExam&&t.solved)b.appendChild(el('span','adTag'+(op.ok?' ok':(k===t.first?' no':'')),op.ok?'✓ Correcta':(k===t.first?'✗ La teva':'Descartada')));
+b.disabled=d||(!adExam&&t.solved);b.onclick=function(){adExam?adExamPick(t,k):adPick(t,k)};box.appendChild(b)});
 if(!adExam){
 if(!t.solved&&!t.fails)box.appendChild(el('div','meta','💡 Atajo: pulsa 1-4 o A-D para elegir. También ←/→ para cambiar de pregunta y Esc para salir.'));
 if(t.solved){var w=el('div','why');w.appendChild(el('div','whyT',(t.fails?'✅ ¡Conseguido! ':'✅ ¡Correcto! ')+'💡 Per què'));w.appendChild(el('div','',t.q[3]));box.appendChild(w)}
@@ -1470,7 +1471,6 @@ function adExamTick(){
   if(left<=0)adExamFinish();
 }
 function adExamPick(t,k){
-  if(t.solved)return;
   t.sel=k;t.solved=true;
   adDraw();
   var bs=box.querySelectorAll('.opt');if(bs[k])bs[k].classList.add('pop');
@@ -1479,11 +1479,11 @@ function adExamFinish(){
   if(!adExam)return;
   clearInterval(adTimer);adTimer=null;adExam=false;adInTest=false;active=false;
   var N=adTest.length,score=0,wrong=[],used=Math.floor((Date.now()-adStartTs)/1000);
-  adTest.forEach(function(z){if(z.sel===z.q[4])score++;else wrong.push(z)});
+  adTest.forEach(function(z){if(z.sel!==null&&z.o[z.sel].ok)score++;else wrong.push(z)});
   var s=adLoad();s.seen=s.seen||{};adTest.forEach(function(z){s.seen[z.id]=(s.seen[z.id]||0)+1});
   s.hist=(s.hist||[]).concat([score+'/'+N]);adSave(s);
   hAdd('ad','SOX · Modo examen (25 preg.)',adTest.map(function(z){var r=z.q[2][z.q[4]];
-    return {q:z.q[1],m:z.sel===null?'':z.q[2][z.sel],r:r,ok:z.sel===z.q[4],f:1}}));
+    return {q:z.q[1],m:z.sel===null?'':z.o[z.sel].x,r:r,ok:z.sel!==null&&z.o[z.sel].ok,f:1}}));
   adShell();LK='';
   var p=score/N,col=p>=.7?'var(--green)':p>=.5?'var(--orange)':'var(--red)';
   var big=el('div','big',score+' / '+N);big.style.color=col;box.appendChild(big);finale(big,score,N);
@@ -1492,7 +1492,7 @@ function adExamFinish(){
   box.appendChild(el('p','c','Preguntas acertadas. Ahora puedes revisar las falladas.'));
   if(wrong.length){box.appendChild(el('h2','','Dónde has fallado ('+wrong.length+')'));
     wrong.forEach(function(z){var r=el('div','rev');r.appendChild(el('p','',z.q[1])).style.fontWeight='700';
-      var y=el('p');y.appendChild(el('span','no','Tu respuesta: '));y.appendChild(document.createTextNode(z.sel===null?'Sin responder':z.q[2][z.sel]));r.appendChild(y);
+      var y=el('p');y.appendChild(el('span','no','Tu respuesta: '));y.appendChild(document.createTextNode(z.sel===null?'Sin responder':z.o[z.sel].x));r.appendChild(y);
       var g=el('p');g.appendChild(el('span','yes','Correcta: '));g.appendChild(document.createTextNode(z.q[2][z.q[4]]));r.appendChild(g);
       r.appendChild(el('p','meta','💡 '+z.q[3]));box.appendChild(r)});}
   else box.appendChild(el('p','c','¡Sin fallos! Perfecto.'));
